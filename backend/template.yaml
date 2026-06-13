@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Amazon Now — NowSpeak Urgent Commerce API
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Architectures: [x86_64]
+    Environment:
+      Variables:
+        AWS_REGION_NAME: !Ref AWS::Region
+        DYNAMODB_PRODUCTS_TABLE: !Ref ProductsTable
+        DYNAMODB_ORDERS_TABLE: !Ref OrdersTable
+        BEDROCK_CHAT_MODEL_ID: anthropic.claude-3-5-haiku-20241022-v1:0
+        BEDROCK_RECS_MODEL_ID: anthropic.claude-3-haiku-20240307-v1:0
+        CORS_ORIGINS: '["*"]'
+
+Resources:
+
+  # ── Lambda function (FastAPI via Mangum) ───────────────────────────────────
+  AmazonNowFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: amazon-now-api
+      CodeUri: .
+      Handler: app.main:app          # Mangum wraps this
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref OrdersTable
+        - Statement:
+            Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:InvokeModelWithResponseStream
+            Resource: "*"
+      Events:
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+  # ── DynamoDB Tables ────────────────────────────────────────────────────────
+  ProductsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: amazon-now-products
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: amazon-now-orders
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: order_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: order_id
+          KeyType: HASH
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt AmazonNowFunction.Arn
