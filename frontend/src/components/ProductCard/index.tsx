@@ -6,103 +6,142 @@ import { Product } from '@/lib/api';
 interface Props {
   product: Product;
   onAddToCart?: (product: Product, qty: number) => void;
+  /** compact = horizontal row layout used in reorder nudges */
   compact?: boolean;
+  /** grid = 4-column compact card (default for product grid) */
+  grid?: boolean;
 }
 
-const MOCK_ORIGINAL_PRICES: Record<string, number> = {
+// Mock original prices for some products to show discount
+const ORIG: Record<string, number> = {
   p001: 55, p002: 89, p006: 219, p007: 115, p011: 75,
-  p016: 25, p017: 49, p019: 75, p031: 649,
+  p016: 25, p017: 49, p019: 75, p031: 649, p039: 999,
 };
 
-export function ProductCard({ product, onAddToCart, compact = false }: Props) {
+export function ProductCard({ product, onAddToCart, compact = false, grid = false }: Props) {
   const [qty, setQty] = useState(0);
 
-  const handleAdd = useCallback(() => {
+  const add = useCallback(() => {
     setQty(1);
     onAddToCart?.(product, 1);
   }, [product, onAddToCart]);
 
-  const handleIncrement = useCallback(() => {
-    setQty(q => { const next = q + 1; onAddToCart?.(product, next); return next; });
+  const inc = useCallback(() => {
+    setQty(q => { const n = q + 1; onAddToCart?.(product, n); return n; });
   }, [product, onAddToCart]);
 
-  const handleDecrement = useCallback(() => {
+  const dec = useCallback(() => {
     setQty(q => {
-      const next = Math.max(0, q - 1);
-      onAddToCart?.(product, next);
-      return next;
+      const n = Math.max(0, q - 1);
+      onAddToCart?.(product, n);
+      return n;
     });
   }, [product, onAddToCart]);
 
-  const originalPrice = MOCK_ORIGINAL_PRICES[product.id];
-  const discount = originalPrice
-    ? Math.round((1 - product.price / originalPrice) * 100)
-    : null;
+  const origPrice = ORIG[product.id];
+  const discount = origPrice ? Math.round((1 - product.price / origPrice) * 100) : null;
 
+  // ── Compact (horizontal) ──────────────────────────────────────────────────
   if (compact) {
     return (
       <div style={{
-        background: 'white', borderRadius: 4, padding: 10,
-        display: 'flex', gap: 10, alignItems: 'center',
-        borderBottom: '1px solid #EEE',
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 12px', background: 'white',
+        borderBottom: '1px solid #F0F0F0',
       }}>
         <div style={{
-          width: 56, height: 56, background: '#F7F7F7', borderRadius: 4,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, overflow: 'hidden',
+          width: 52, height: 52, background: '#F7F7F7', borderRadius: 6,
+          flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={product.image_url} alt={product.name} style={{ width: 48, height: 48, objectFit: 'contain' }} />
+          <img src={product.image_url} alt={product.name} style={{ width: 46, height: 46, objectFit: 'contain' }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 500, color: '#0F1111', lineHeight: 1.3, margin: '0 0 2px',
+          <p style={{ fontSize: 12, fontWeight: 500, color: '#0F1111', margin: 0, lineHeight: 1.3,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {product.name}
           </p>
-          <p style={{ fontSize: 11, color: '#565959', margin: 0 }}>{product.unit}</p>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#0F1111' }}>₹{product.price}</span>
-            {originalPrice && (
-              <span style={{ fontSize: 11, color: '#565959', textDecoration: 'line-through' }}>₹{originalPrice}</span>
-            )}
-          </div>
+          <p style={{ fontSize: 10, color: '#888', margin: '2px 0 0' }}>{product.unit}</p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#0F1111', margin: '3px 0 0' }}>₹{product.price}</p>
         </div>
-        <AddButton qty={qty} onAdd={handleAdd} onInc={handleIncrement} onDec={handleDecrement} />
+        <AddBtn qty={qty} onAdd={add} onInc={inc} onDec={dec} small />
       </div>
     );
   }
 
+  // ── Grid card (4-column compact, matches Amazon Now) ──────────────────────
+  if (grid) {
+    return (
+      <div style={{
+        background: 'white', borderRadius: 6,
+        border: '1px solid #F0F0F0', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+      }}>
+        {/* Image */}
+        <div style={{ background: '#FAFAFA', position: 'relative', paddingTop: '90%', overflow: 'hidden' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={product.image_url} alt={product.name}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
+          />
+          {discount && discount > 0 && (
+            <div style={{
+              position: 'absolute', top: 4, left: 4,
+              background: '#CC0C39', color: 'white',
+              fontSize: 8, fontWeight: 700, padding: '1px 4px', borderRadius: 2,
+            }}>
+              {discount}% off
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div style={{ padding: '5px 6px 6px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <p style={{
+            fontSize: 11, color: '#0F1111', margin: 0, lineHeight: 1.3, fontWeight: 400,
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>
+            {product.name}
+          </p>
+          <p style={{ fontSize: 9, color: '#888', margin: '2px 0 4px' }}>{product.unit}</p>
+
+          {/* Price + Add button */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#0F1111' }}>₹{product.price}</span>
+              {origPrice && (
+                <span style={{ fontSize: 9, color: '#888', textDecoration: 'line-through', marginLeft: 3 }}>
+                  ₹{origPrice}
+                </span>
+              )}
+            </div>
+            <AddBtn qty={qty} onAdd={add} onInc={inc} onDec={dec} small />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Standard 2-column card (used in NowSpeak results) ─────────────────────
   return (
     <div style={{
-      background: 'white', borderRadius: 4, overflow: 'hidden',
-      border: '1px solid #E8E8E8',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-      display: 'flex', flexDirection: 'column',
+      background: 'white', borderRadius: 6, overflow: 'hidden',
+      border: '1px solid #EBEBEB', display: 'flex', flexDirection: 'column',
     }}>
-      {/* Product image */}
-      <div style={{
-        background: '#F7F7F7', position: 'relative',
-        paddingTop: '100%', overflow: 'hidden',
-      }}>
+      <div style={{ background: '#FAFAFA', position: 'relative', paddingTop: '100%', overflow: 'hidden' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={product.image_url}
-          alt={product.name}
-          style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            objectFit: 'contain', padding: 8,
-          }}
+          src={product.image_url} alt={product.name}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', padding: 8 }}
         />
-        {/* ETA badge */}
         <div style={{
           position: 'absolute', top: 6, left: 6,
           background: '#067D62', color: 'white',
           fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 3,
-          display: 'flex', alignItems: 'center', gap: 2,
         }}>
           ⚡ {product.eta_min} min
         </div>
-        {/* Discount badge */}
         {discount && discount > 0 && (
           <div style={{
             position: 'absolute', top: 6, right: 6,
@@ -113,82 +152,78 @@ export function ProductCard({ product, onAddToCart, compact = false }: Props) {
           </div>
         )}
       </div>
-
-      {/* Product info */}
       <div style={{ padding: '8px 8px 4px', flex: 1 }}>
         <p style={{
-          fontSize: 12, fontWeight: 400, color: '#0F1111', margin: 0,
-          lineHeight: 1.4, display: '-webkit-box',
-          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          fontSize: 12, color: '#0F1111', margin: 0, lineHeight: 1.4,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>
           {product.name}
         </p>
-        <p style={{ fontSize: 11, color: '#565959', margin: '2px 0 0' }}>{product.unit}</p>
-
-        {/* Price row */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#0F1111' }}>₹{product.price}</span>
-          {originalPrice && (
-            <span style={{ fontSize: 11, color: '#565959', textDecoration: 'line-through' }}>
-              ₹{originalPrice}
-            </span>
+        <p style={{ fontSize: 11, color: '#888', margin: '2px 0 0' }}>{product.unit}</p>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#0F1111' }}>₹{product.price}</span>
+          {origPrice && (
+            <span style={{ fontSize: 10, color: '#888', textDecoration: 'line-through' }}>₹{origPrice}</span>
           )}
         </div>
       </div>
-
-      {/* Add button */}
       <div style={{ padding: '0 8px 8px' }}>
-        <AddButton qty={qty} onAdd={handleAdd} onInc={handleIncrement} onDec={handleDecrement} />
+        <AddBtn qty={qty} onAdd={add} onInc={inc} onDec={dec} />
       </div>
     </div>
   );
 }
 
-function AddButton({
-  qty, onAdd, onInc, onDec,
-}: { qty: number; onAdd: () => void; onInc: () => void; onDec: () => void }) {
+// ── Reusable Add/Counter button ───────────────────────────────────────────────
+function AddBtn({
+  qty, onAdd, onInc, onDec, small = false,
+}: { qty: number; onAdd: () => void; onInc: () => void; onDec: () => void; small?: boolean }) {
+  const size = small ? 26 : 32;
+  const fontSize = small ? 16 : 18;
+  const textSize = small ? 11 : 13;
+
   if (qty === 0) {
     return (
       <button
         onClick={onAdd}
         style={{
-          width: '100%', padding: '7px 0',
-          background: 'white', color: '#FF9900',
-          border: '1.5px solid #FF9900',
-          borderRadius: 4, fontSize: 13, fontWeight: 700,
-          cursor: 'pointer', letterSpacing: '0.5px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+          width: size, height: size, borderRadius: '50%',
+          background: '#FFD814', border: '1px solid #F0C000',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', fontSize, fontWeight: 700, color: '#0F1111',
+          flexShrink: 0,
         }}
-        className="add-btn-transition"
       >
-        + Add
+        +
       </button>
     );
   }
 
   return (
     <div style={{
-      width: '100%', display: 'flex', alignItems: 'center',
-      background: '#FF9900', borderRadius: 4, overflow: 'hidden',
+      display: 'flex', alignItems: 'center',
+      background: '#FFD814', borderRadius: 20,
+      border: '1px solid #F0C000', overflow: 'hidden',
+      flexShrink: 0,
     }}>
       <button
         onClick={onDec}
         style={{
-          flex: 1, padding: '7px 0', background: 'none', border: 'none',
-          color: 'white', fontSize: 18, fontWeight: 700, cursor: 'pointer',
+          width: size, height: size, background: 'none', border: 'none',
+          cursor: 'pointer', fontSize, fontWeight: 700, color: '#0F1111',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
         −
       </button>
-      <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 700, color: 'white' }}>
+      <span style={{ fontSize: textSize, fontWeight: 700, color: '#0F1111', minWidth: 16, textAlign: 'center' }}>
         {qty}
       </span>
       <button
         onClick={onInc}
         style={{
-          flex: 1, padding: '7px 0', background: 'none', border: 'none',
-          color: 'white', fontSize: 18, fontWeight: 700, cursor: 'pointer',
+          width: size, height: size, background: 'none', border: 'none',
+          cursor: 'pointer', fontSize, fontWeight: 700, color: '#0F1111',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >

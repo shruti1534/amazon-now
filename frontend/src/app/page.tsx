@@ -2,11 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getRecommendations, Recommendations, Product } from '@/lib/api';
+import { getRecommendations, Recommendations, Product, Order } from '@/lib/api';
 import { RecommendationFeed } from '@/components/RecommendationFeed';
 import { SpeedCheckout, CartItem } from '@/components/SpeedCheckout';
 import { AmazonHeader } from '@/components/AmazonHeader';
-import { Order } from '@/lib/api';
 
 export default function HomePage() {
   const router = useRouter();
@@ -24,8 +23,8 @@ export default function HomePage() {
 
   const handleProductSelect = useCallback((product: Product, qty: number) => {
     setCart(prev => {
-      const exists = prev.find(i => i.product.id === product.id);
       if (qty === 0) return prev.filter(i => i.product.id !== product.id);
+      const exists = prev.find(i => i.product.id === product.id);
       if (exists) return prev.map(i => i.product.id === product.id ? { ...i, quantity: qty } : i);
       return [...prev, { product, quantity: qty }];
     });
@@ -36,66 +35,100 @@ export default function HomePage() {
     setTimeout(() => setShowCheckout(false), 3200);
   };
 
+  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <div style={{ background: '#EAEDED', minHeight: '100vh', paddingBottom: 64 }}>
-      {/* Amazon-style sticky header */}
-      <AmazonHeader cart={cart} onCartClick={() => cartCount > 0 && setShowCheckout(true)} />
+    <div style={{ background: '#F7F7F7', minHeight: '100vh', paddingBottom: cartCount > 0 ? 72 : 0 }}>
+      {/* Amazon Now white header */}
+      <AmazonHeader
+        cart={cart}
+        onCartClick={() => cartCount > 0 && setShowCheckout(true)}
+      />
 
-      {/* NowSpeak banner — Amazon prime-style */}
+      {/* NowSpeak CTA banner */}
       <div
         onClick={() => router.push('/nowspeak')}
         style={{
-          background: 'linear-gradient(135deg, #232F3E 0%, #37475A 100%)',
-          margin: '8px 8px 0',
-          borderRadius: 6, padding: '12px 14px',
+          background: 'linear-gradient(135deg, #1565C0 0%, #1E88E5 100%)',
+          margin: '8px 10px 0', borderRadius: 10, padding: '12px 14px',
           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12,
-          border: '1px solid #FF9900',
         }}
       >
         <div style={{
-          width: 44, height: 44, background: '#FF9900', borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, flexShrink: 0,
+          width: 40, height: 40, background: 'rgba(255,255,255,0.2)',
+          borderRadius: '50%', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: 20, flexShrink: 0,
         }}>🎙️</div>
         <div style={{ flex: 1 }}>
-          <p style={{ color: '#FF9900', fontWeight: 700, fontSize: 14, margin: 0 }}>
-            Try NowSpeak™ — Just say what you need
+          <p style={{ color: 'white', fontWeight: 700, fontSize: 13, margin: 0 }}>
+            NowSpeak™ — Just say what you need
           </p>
-          <p style={{ color: '#CCC', fontSize: 11, margin: '2px 0 0' }}>
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, margin: '2px 0 0' }}>
             "I have a fever" → AI finds it in seconds
           </p>
         </div>
-        <svg width="20" height="20" fill="#FF9900" viewBox="0 0 24 24">
+        <svg width="16" height="16" fill="rgba(255,255,255,0.8)" viewBox="0 0 24 24">
           <path d="M10 17l5-5-5-5v10z"/>
         </svg>
       </div>
 
-      {/* Deals of the Day banner */}
+      {/* Back to School style banner */}
       <div style={{
-        background: 'linear-gradient(90deg, #FF9900 0%, #FFB347 100%)',
-        margin: '8px 8px 0', borderRadius: 6, padding: '10px 14px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        margin: '8px 10px 0', borderRadius: 10, overflow: 'hidden',
+        background: 'linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)',
+        padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div>
-          <p style={{ color: 'white', fontWeight: 700, fontSize: 14, margin: 0 }}>
-            🏷️ Deals of the Day
+          <p style={{ color: 'white', fontWeight: 900, fontSize: 16, margin: 0, textTransform: 'uppercase', letterSpacing: '-0.5px' }}>
+            🎒 Back to school
           </p>
-          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, margin: '2px 0 0' }}>
-            Up to 30% off on daily essentials
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, margin: '2px 0 0', fontWeight: 600 }}>
+            Up to 30% off on essentials
           </p>
         </div>
         <div style={{
-          background: 'white', color: '#FF9900', fontSize: 11,
-          fontWeight: 700, padding: '4px 10px', borderRadius: 4,
+          background: 'white', color: '#F7931E',
+          fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 20,
         }}>
           Shop Now
         </div>
       </div>
 
-      {/* Products section */}
-      <div style={{ marginTop: 8 }}>
+      {/* Assured cashback strip */}
+      <div style={{
+        background: 'white', margin: '8px 0 0', padding: '10px 14px',
+        display: 'flex', alignItems: 'center', gap: 12,
+        borderTop: '1px solid #F0F0F0', borderBottom: '1px solid #F0F0F0',
+        overflowX: 'auto',
+      }}>
+        {[
+          { icon: '🏅', label: 'Assured\ncashback' },
+          { icon: '🔄', label: '0% Extra\nFees' },
+          { icon: '⚡', label: '30 min\nDelivery' },
+          { icon: '🛡️', label: '100%\nSafe' },
+          { icon: '↩️', label: 'Easy\nReturns' },
+        ].map(item => (
+          <div key={item.label} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 3, flexShrink: 0, minWidth: 52,
+          }}>
+            <div style={{
+              width: 36, height: 36, background: '#FFF8E1',
+              borderRadius: '50%', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 18,
+            }}>
+              {item.icon}
+            </div>
+            <span style={{ fontSize: 9, color: '#565959', textAlign: 'center', whiteSpace: 'pre-line', lineHeight: 1.2 }}>
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Products */}
+      <div style={{ marginTop: 0 }}>
         {loading ? (
           <LoadingSkeleton />
         ) : recs ? (
@@ -107,14 +140,9 @@ export default function HomePage() {
             onProductSelect={handleProductSelect}
           />
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 20px', background: 'white' }}>
-            <p style={{ color: '#565959', fontSize: 14 }}>
-              Backend not running. Start with:
-            </p>
-            <code style={{
-              background: '#F3F3F3', padding: '6px 12px', borderRadius: 4,
-              fontSize: 12, display: 'block', marginTop: 8,
-            }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', background: 'white', margin: '8px 0' }}>
+            <p style={{ color: '#888', fontSize: 13 }}>Backend not running</p>
+            <code style={{ background: '#F3F3F3', padding: '4px 8px', borderRadius: 4, fontSize: 11 }}>
               cd backend && uvicorn app.main:app --reload
             </code>
           </div>
@@ -123,24 +151,58 @@ export default function HomePage() {
 
       {/* Amazon-style bottom nav */}
       <nav style={{
-        position: 'fixed', bottom: 0, inset: '0 0 auto',
-        left: 0, right: 0, background: 'white',
-        borderTop: '1px solid #DDD', display: 'flex',
-        justifyContent: 'space-around', alignItems: 'center',
-        padding: '8px 0 4px', height: 56, zIndex: 40,
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'white', borderTop: '1px solid #E0E0E0',
+        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+        padding: '6px 0 8px', zIndex: 40,
       }}>
         <NavTab icon="🏠" label="Home" active />
         <NavTab icon="🔍" label="Search" onClick={() => router.push('/nowspeak')} />
-        <NavTab
-          icon="🛒"
-          label="Cart"
-          badge={cartCount}
-          onClick={() => cartCount > 0 && setShowCheckout(true)}
-        />
+        <NavTab icon="🛒" label="Cart" badge={cartCount} onClick={() => cartCount > 0 && setShowCheckout(true)} />
         <NavTab icon="👤" label="Account" />
       </nav>
 
-      {/* Speed checkout modal */}
+      {/* Bottom cart proceed bar (when items in cart) */}
+      {cartCount > 0 && !showCheckout && (
+        <div style={{
+          position: 'fixed', bottom: 56, left: 0, right: 0, zIndex: 39,
+          background: 'white', borderTop: '1px solid #E0E0E0',
+          padding: '8px 12px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ position: 'relative' }}>
+              <svg width="24" height="24" fill="#0F1111" viewBox="0 0 24 24">
+                <path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59L5.25 14c-.16.28-.25.61-.25.96C5 16.1 5.9 17 7 17h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H19c.75 0 1.41-.41 1.75-1.03L23 6H5.21l-.67-4H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+              </svg>
+              <span style={{
+                position: 'absolute', top: -3, right: -3,
+                background: '#FF9900', color: 'white', borderRadius: '50%',
+                width: 14, height: 14, fontSize: 8, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{cartCount}</span>
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: '#0F1111', margin: 0, fontWeight: 500 }}>
+                ₹{cartTotal.toFixed(0)} · {cartCount} item{cartCount > 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowCheckout(true)}
+            style={{
+              background: '#FFD814', color: '#0F1111',
+              border: 'none', borderRadius: 8, padding: '8px 20px',
+              fontWeight: 700, fontSize: 14, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            Proceed →
+          </button>
+        </div>
+      )}
+
+      {/* Checkout modal */}
       {showCheckout && cart.length > 0 && (
         <SpeedCheckout
           cart={cart}
@@ -152,33 +214,28 @@ export default function HomePage() {
   );
 }
 
-function NavTab({
-  icon, label, active, badge, onClick,
-}: { icon: string; label: string; active?: boolean; badge?: number; onClick?: () => void }) {
+function NavTab({ icon, label, active, badge, onClick }: {
+  icon: string; label: string; active?: boolean; badge?: number; onClick?: () => void;
+}) {
   return (
     <button
       onClick={onClick}
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 2, background: 'none', border: 'none', cursor: 'pointer',
-        position: 'relative', padding: '2px 12px',
+        gap: 2, background: 'none', border: 'none',
+        cursor: 'pointer', position: 'relative', padding: '2px 16px',
       }}
     >
       <span style={{ fontSize: 20 }}>{icon}</span>
       {badge !== undefined && badge > 0 && (
         <span style={{
-          position: 'absolute', top: 0, right: 6,
-          background: '#CC0C39', color: 'white',
-          borderRadius: '50%', width: 15, height: 15, fontSize: 9,
-          fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {badge}
-        </span>
+          position: 'absolute', top: 0, right: 8,
+          background: '#CC0C39', color: 'white', borderRadius: '50%',
+          width: 14, height: 14, fontSize: 8, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{badge}</span>
       )}
-      <span style={{
-        fontSize: 10, fontWeight: active ? 700 : 400,
-        color: active ? '#FF9900' : '#565959',
-      }}>
+      <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? '#0F1111' : '#888' }}>
         {label}
       </span>
     </button>
@@ -187,35 +244,19 @@ function NavTab({
 
 function LoadingSkeleton() {
   return (
-    <div style={{ background: 'white', padding: 12 }}>
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
-      }}>
-        {[...Array(6)].map((_, i) => (
-          <div key={i} style={{
-            borderRadius: 4, overflow: 'hidden',
-            border: '1px solid #EEE',
-          }}>
-            <div style={{
-              paddingTop: '100%',
-              background: 'linear-gradient(90deg, #F0F0F0 25%, #E0E0E0 50%, #F0F0F0 75%)',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s infinite',
-            }} />
-            <div style={{ padding: 8 }}>
-              <div style={{ height: 12, background: '#F0F0F0', borderRadius: 2, marginBottom: 6 }} />
-              <div style={{ height: 12, background: '#F0F0F0', borderRadius: 2, width: '70%' }} />
-              <div style={{ height: 28, background: '#F0F0F0', borderRadius: 4, marginTop: 10 }} />
+    <div style={{ background: 'white', padding: 10, marginTop: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+        {[...Array(8)].map((_, i) => (
+          <div key={i} style={{ borderRadius: 6, overflow: 'hidden', border: '1px solid #F0F0F0' }}>
+            <div style={{ paddingTop: '90%', background: '#F0F0F0' }} />
+            <div style={{ padding: 6 }}>
+              <div style={{ height: 10, background: '#F0F0F0', borderRadius: 2, marginBottom: 4 }} />
+              <div style={{ height: 10, background: '#F0F0F0', borderRadius: 2, width: '70%' }} />
+              <div style={{ height: 22, background: '#F0F0F0', borderRadius: 4, marginTop: 8 }} />
             </div>
           </div>
         ))}
       </div>
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-      `}</style>
     </div>
   );
 }
